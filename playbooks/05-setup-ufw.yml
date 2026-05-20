@@ -1,0 +1,58 @@
+---
+- name: Konfigurer UFW-brannmur
+  hosts: alle
+  become: true
+
+  tasks:
+    # Installerer UFW
+    - name: Installer UFW
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+        update_cache: true
+
+    # Blokker all innkommende trafikk som ikke eksplisitt tillates
+    - name: Sett standardpolicy for innkommende trafikk til deny
+      community.general.ufw:
+        direction: incoming
+        policy: deny
+
+    # Tillater utgående trafikk
+    - name: Sett standardpolicy for utgående trafikk til allow
+      community.general.ufw:
+        direction: outgoing
+        policy: allow
+
+    # Tillater SSH kun fra administrasjonsnettet
+    - name: Tillat SSH fra administrasjonsnettet
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+        from_ip: 192.168.56.0/24
+
+    # HTTP åpnes på webserver
+    - name: Tillat HTTP på webserver
+      community.general.ufw:
+        rule: allow
+        port: "80"
+        proto: tcp
+      when: "'web_srv' in group_names"
+
+    # HTTPS åpnes på webserver - > Skaff SSL-sertifikat og aktiver dette senere
+    # name: Tillat HTTPS på webserver
+    #  community.general.ufw:
+    #    rule: allow
+    #    port: "443"
+    #    proto: tcp
+    #  when: "'web_srv' in group_names"
+
+    # Aktiverer logging av brannmurhendelser
+    - name: Aktiver logging for UFW
+      community.general.ufw:
+        logging: "on"
+
+    # Aktiverer UFW
+    - name: Aktiver UFW
+      community.general.ufw:
+        state: enabled

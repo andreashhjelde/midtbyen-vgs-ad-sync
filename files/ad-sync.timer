@@ -1,0 +1,12 @@
+[Unit]
+Description=AD Sync Timer - Kjør synkronisering hvert 10. minutt
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+RandomizedDelaySec=60
+# Forhindrer at alle servere kjører AD-oppslag samtidig (reduserer belastning på DC)
+Unit=ad-sync.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,202 @@
+/* Standard box-model for enklere layout-håndtering */
+* {
+    box-sizing: border-box;
+}
+
+/* Grunnleggende styling for hele siden */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f9;
+    color: #222;
+    line-height: 1.5;
+}
+
+/* Navigasjonsmeny */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1f2937;
+    padding: 1rem 2rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Logo/overskrift i navigasjonsfelt */
+.logo {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Lenker i høyre del av menyen */
+.nav-right a {
+    color: white;
+    text-decoration: none;
+    margin-left: 1.5rem;
+}
+
+/* Enkel hover-effekt for navigasjonslenker */
+.nav-right a:hover {
+    text-decoration: underline;
+}
+
+/* Hovedcontainer for innhold */
+.container {
+    max-width: 950px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+/* Sideoverskrift */
+.page-header {
+    margin-bottom: 2rem;
+}
+
+/* Sidebeskrivelse */
+.page-header p {
+    max-width: 700px;
+    color: #444;
+}
+
+/* Responsivt grid for statuskort */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Standard kort-design brukt i dashboard */
+.card {
+    background-color: white;
+    padding: 1.4rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+    margin-bottom: 1.5rem;
+}
+
+/* Overskrifter i kort */
+.card h2,
+.card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+/* Generell status-tekst */
+.status {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Aktiv service/timer */
+.status.active {
+    color: green;
+}
+
+/* Feilet eller inaktiv service/timer */
+.status.failed,
+.status.inactive {
+    color: red;
+}
+
+/* Standard knappestil */
+button {
+    width: 100%;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 0.9rem 1.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.15s ease;
+}
+
+/* Hover-effekt for knapper */
+button:hover {
+    background-color: #1d4ed8;
+}
+
+/* Vellykket handling */
+.success {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+/* Feilmeldinger */
+.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+/* Styling for loggvisning */
+pre {
+    background-color: #111827;
+    color: #f9fafb;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 300px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+/* Dropdown for valg av sync-server */
+select {
+    width: 100%;
+    padding: 0.7rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 0.95rem;
+}
+
+/* Sentrerer innloggingsboksen */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+/* Begrenset bredde på login-kort */
+.login-card {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Standard form-layout */
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Label over inputfelt */
+label {
+    margin-top: 1rem;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+}
+
+/* Inputfelt for brukernavn/passord */
+input {
+    padding: 0.7rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+/* Nedtonet hjelpetekst */
+.muted {
+    color: #666;
+    font-size: 0.9rem;
+}

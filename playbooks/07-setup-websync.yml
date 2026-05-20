@@ -1,0 +1,45 @@
+---
+- name: Konfigurer websync-bruker for AD-sync dashboard
+  hosts: linux_srv
+  become: true
+
+  tasks:
+    # Oppretter egen teknisk bruker for webpanelet
+    # Brukeren brukes kun til begrensede SSH-kall fra webserver
+    - name: Opprett websync-bruker
+      ansible.builtin.user:
+        name: websync
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    # Oppretter .ssh-katalog
+    - name: Opprett SSH-katalog for websync
+      ansible.builtin.file:
+        path: /home/websync/.ssh
+        state: directory
+        owner: websync
+        group: websync
+        mode: "0700"
+
+    # Legger inn public key fra webserver
+    # Denne nøkkelen må genereres på webserver som www-data først
+    - name: Legg til SSH-nøkkel fra webserver for websync
+      ansible.posix.authorized_key:
+        user: websync
+        state: present
+        key: "{{ websync_public_key }}"
+
+    # Gir websync kun lov til å kjøre forhåndsdefinerte AD-sync-kommandoer
+    - name: Legg til begrensede sudoers-regler for websync
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/websync-ad-sync
+        content: |
+          websync ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active ad-sync.service
+          websync ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active ad-sync.timer
+          websync ALL=(ALL) NOPASSWD: /usr/bin/systemctl start ad-sync.service
+          websync ALL=(ALL) NOPASSWD: /usr/bin/tail -n 40 /var/log/ad-sync.log
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"

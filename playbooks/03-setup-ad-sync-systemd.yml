@@ -1,0 +1,46 @@
+---
+# Beskrivelse:
+# Setter opp systemd service og timer for automatisk AD-sync.
+# Timeren kjører synkroniseringsscriptet periodisk på hver Linux-server.
+#
+# Målgruppe:
+# sync_srv
+#
+# Forutsetninger:
+# - AD-sync er installert under /opt/ad-sync
+# - /etc/ad-sync/ad-sync.env finnes
+
+- name: Sett opp systemd for AD-sync
+  hosts: sync_srv
+  become: true
+
+  tasks:
+    # Definerer hvordan synkroniseringsscriptet skal kjøres
+    - name: Kopier systemd service
+      ansible.builtin.copy:
+        src: ../files/ad-sync.service
+        dest: /etc/systemd/system/ad-sync.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Definerer når synkroniseringen skal kjøres
+    - name: Kopier systemd timer
+      ansible.builtin.copy:
+        src: ../files/ad-sync.timer
+        dest: /etc/systemd/system/ad-sync.timer
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Leser inn nye/endrede systemd-konfigurasjoner
+    - name: Last inn systemd på nytt
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    # Starter timeren og sørger for at den kjører ved oppstart
+    - name: Aktiver og start AD-sync timer
+      ansible.builtin.systemd:
+        name: ad-sync.timer
+        enabled: true
+        state: started

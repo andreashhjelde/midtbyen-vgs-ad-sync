@@ -1,0 +1,49 @@
+---
+# Beskrivelse:
+# Oppretter en dedikert ansible-bruker på alle servere.
+# Brukeren får passordløs sudo og SSH-tilgang via nøkkel.
+#
+# Målgruppe:
+# alle (linux_srv, fil_srv, web_srv)
+#
+# Formål:
+# Muliggjør sikker og automatisert administrasjon via Ansible
+# uten bruk av personlig administrasjonsbruker.
+
+- name: Opprett ansible-bruker
+  hosts: alle
+  become: true
+
+  tasks:
+    # Oppretter egen systembruker for automatisert drift
+    - name: Opprett ansible-bruker
+      ansible.builtin.user:
+        name: ansible
+        shell: /bin/bash
+        create_home: true
+
+    # Gir nødvendige administrative rettigheter uten passord
+    # visudo brukes for å validere syntaks og unngå feil i sudoers
+    - name: Gi ansible passordløs sudo
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/ansible
+        content: "ansible ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: '0440'
+        validate: /usr/sbin/visudo -cf %s
+
+    # Klargjør SSH-katalog med riktige rettigheter
+    - name: Opprett .ssh-mappe for ansible-bruker
+      ansible.builtin.file:
+        path: /home/ansible/.ssh
+        state: directory
+        owner: ansible
+        group: ansible
+        mode: '0700'
+
+    # Legger inn public key fra ansible-control for passordløs SSH-tilgang
+    - name: Legg inn SSH-nøkkel for ansible-bruker
+      ansible.builtin.authorized_key:
+        user: ansible
+        key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"

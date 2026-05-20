@@ -1,0 +1,26 @@
+# Secrets
+files/ad-sync.env
+files/keys/websync.pub
+files/certs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Python tooling
+.ruff_cache/
+.pytest_cache/
+
+# Ansible
+*.retry
+
+# VS Code
+.vscode/
+.vscode-server/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db

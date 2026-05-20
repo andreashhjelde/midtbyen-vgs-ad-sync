@@ -1,0 +1,108 @@
+---
+# Beskrivelse:
+# Setter opp AD-sync på Linux-serverne.
+# Playbooken installerer nødvendige pakker, oppretter mapper,
+# setter opp Python-venv, installerer CA-sertifikat
+# og kopierer synkroniseringsscript og konfigurasjonsfil.
+#
+# Målgruppe:
+# sync_srv
+#
+# Forutsetninger:
+# - ansible-bruker er opprettet
+# - SSH-tilgang fungerer
+# - Serverne har nettverkstilgang og fungerer mot APT repositories
+
+- name: Sett opp AD-sync på Linux-servere
+  hosts: sync_srv
+  become: true
+
+  tasks:
+    # Installerer nødvendige pakker for AD-sync
+    # ca-certificates brukes for å validere LDAPS-sertifikatet fra domenekontrolleren
+    # update_cache er deaktivert for å unngå problemer med apt-lock
+    - name: Installer nødvendige pakker
+      ansible.builtin.apt:
+        name:
+          - python3
+          - python3-venv
+          - python3-pip
+          - ca-certificates
+        state: present
+        update_cache: false
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    # Installerer Midtbyen sitt CA-sertifikat på Linux-serveren
+    # Dette gjør at LDAPS-sertifikatet fra domenekontrolleren stoles på
+    - name: Installer Midtbyen CA-sertifikat
+      ansible.builtin.copy:
+        src: ../files/certs/midtbyen-ca.crt
+        dest: /usr/local/share/ca-certificates/midtbyen-ca.crt
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Oppdaterer Linux sin trusted CA store
+    - name: Oppdater CA-sertifikater
+      ansible.builtin.command: update-ca-certificates
+
+    # Hovedmappe for synkroniseringsløsningen
+    - name: Opprett mappe for AD-sync
+      ansible.builtin.file:
+        path: /opt/ad-sync
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Mappe for konfigurasjonsfiler og sensitive data
+    - name: Opprett config-mappe
+      ansible.builtin.file:
+        path: /etc/ad-sync
+        state: directory
+        owner: root
+        group: root
+        mode: '0750'
+
+    # Oppretter isolert Python-miljø
+    - name: Opprett Python virtual environment
+      ansible.builtin.command:
+        cmd: python3 -m venv /opt/ad-sync/venv
+        creates: /opt/ad-sync/venv/bin/python
+
+    # Installerer bibliotek for LDAP/LDAPS
+    - name: Installer ldap3 i venv
+      ansible.builtin.pip:
+        name: ldap3
+        virtualenv: /opt/ad-sync/venv
+
+    # Selve synkroniseringsscriptet
+    - name: Kopier sync-script
+      ansible.builtin.copy:
+        src: ../files/sync.py
+        dest: /opt/ad-sync/sync.py
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Inneholder LDAP-tilkobling og sensitiv konfigurasjon
+    - name: Kopier miljøfil
+      ansible.builtin.copy:
+        src: ../files/ad-sync.env
+        dest: /etc/ad-sync/ad-sync.env
+        owner: root
+        group: root
+        mode: '0600'
+
+    # Gir webserver (www-data) rettigheter til å starte og sjekke status på AD-sync service uten passord
+    - name: Gi webserver rettigheter til AD-sync service
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/ad-sync-web
+        content: |
+          www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl start ad-sync.service
+          www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active ad-sync.service
+          www-data ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active ad-sync.timer
+        owner: root
+        group: root
+        mode: '0440'

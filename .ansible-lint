@@ -1,0 +1,12 @@
+---
+skip_list:
+  - yaml[line-length]
+  - name[casing]
+  - fqcn[canonical]
+  - no-relative-paths
+  - no-changed-when
+  - risky-file-permissions
+  - partial-become
+
+warn_list:
+  - deprecation

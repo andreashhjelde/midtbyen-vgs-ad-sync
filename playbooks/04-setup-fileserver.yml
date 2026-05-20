@@ -1,0 +1,134 @@
+---
+# Beskrivelse:
+# Setter opp filserver med SSHFS mellom Linux-servere og filserver.
+# Genererer SSH-nøkler, autoriserer tilgang og monterer delt mappe /mnt/felles.
+#
+# Målgruppe:
+# linux_srv (klienter) og fil_srv (filserver)
+#
+# Forutsetninger:
+# - ansible-bruker er opprettet
+# - SSH-tilgang fungerer mellom serverne
+# - Filserver er tilgjengelig på nettverket
+
+- name: Generer SSH-nøkkel for ansible-bruker på Linux-servere
+  hosts: linux_srv
+  become: true
+
+  tasks:
+    # Genererer SSH-nøkkel dersom den ikke finnes fra før
+    - name: Generer SSH-nøkkel for ansible-bruker
+      ansible.builtin.user:
+        name: ansible
+        generate_ssh_key: true
+        ssh_key_type: ed25519
+
+    # Leser public key for videre distribusjon til filserver
+    - name: Hent public key
+      ansible.builtin.slurp:
+        src: /home/ansible/.ssh/id_ed25519.pub
+      register: pubkey
+
+- name: Sett opp filserver
+  hosts: fil_srv
+  become: true
+
+  tasks:
+    # Oppretter mapper med riktige grupper og rettigheter
+
+    # Oppretter Linux-grupper lokalt på filserveren
+    - name: Opprett lokale grupper på filserver
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - linux-users
+        - linux-laerere
+        - linux-it-laerere
+        - linux-it-elever
+        - linux-im-elever
+
+    # Setgid-bit gjør at nye filer arver gruppen til mappen
+    - name: Opprett filserver-mapper med riktige grupper og rettigheter
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: root
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/srv/felles", group: "linux-users", mode: "2775" }
+        - { path: "/srv/laerere", group: "linux-laerere", mode: "2770" }
+        - { path: "/srv/utviklere", group: "linux-it-laerere", mode: "2770" }
+        - { path: "/srv/elever", group: "linux-it-elever", mode: "2770" }
+        - { path: "/srv/medieproduksjon", group: "linux-im-elever", mode: "2770" }
+
+    # Gir alle Linux-servere tilgang til filserver via SSH
+    - name: Legg inn SSH-nøkler fra Linux-servere
+      ansible.builtin.authorized_key:
+        user: ansible
+        key: "{{ hostvars[item]['pubkey']['content'] | b64decode }}"
+      loop: "{{ groups['linux_srv'] }}"
+
+- name: Monter filserver på Linux-servere
+  hosts: linux_srv
+  become: true
+
+  tasks:
+    # Installerer SSHFS for å kunne montere filsystem over SSH
+    - name: Installer sshfs
+      ansible.builtin.apt:
+        name: sshfs
+        state: present
+        update_cache: false
+
+    # Oppretter lokalt mountpoint for delt katalog
+    - name: Opprett mountpoint
+      ansible.builtin.file:
+        path: /mnt/felles
+        state: directory
+
+    # Tillater at andre brukere enn eier får tilgang til mountet
+    - name: Aktiver user_allow_other i fuse.conf
+      ansible.builtin.lineinfile:
+        path: /etc/fuse.conf
+        regexp: '^#?user_allow_other'
+        line: 'user_allow_other'
+        state: present
+
+    # Unngår interaktiv SSH-forespørsel ved første tilkobling
+    - name: Legg til filserver i known_hosts
+      ansible.builtin.known_hosts:
+        path: /home/ansible/.ssh/known_hosts
+        name: "192.168.56.50"
+        key: "{{ lookup('pipe', 'ssh-keyscan -t ed25519 192.168.56.50') }}"
+      become_user: ansible
+
+    # Sikrer riktige rettigheter på known_hosts
+    - name: Sett riktig eier på known_hosts
+      ansible.builtin.file:
+        path: /home/ansible/.ssh/known_hosts
+        owner: ansible
+        group: ansible
+        mode: '0644'
+
+    # Kopierer systemd mount-enhet for å montere filserver ved oppstart
+    - name: Kopier systemd mount-enhet
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../files/mnt-felles.mount"
+        dest: /etc/systemd/system/mnt-felles.mount
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Laster inn systemd på nytt for å registrere nye enheter
+    - name: Last inn systemd på nytt
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    # Aktiverer og starter mount-enheten umiddelbart og ved oppstart
+    - name: Enable og start SSHFS mount
+      ansible.builtin.systemd:
+        name: mnt-felles.mount
+        enabled: true
+        state: started

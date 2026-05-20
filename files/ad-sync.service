@@ -1,0 +1,16 @@
+[Unit]
+Description=AD Sync - Synkroniser brukere og grupper fra Active Directory til Linux
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ad-sync/ad-sync.env
+ExecStart=/opt/ad-sync/venv/bin/python3 /opt/ad-sync/sync.py
+
+# Sikrer at systemd ser på kjøringen som vellykket kun ved exit code 0
+SuccessExitStatus=0
+
+# Logger output til journal (for bruk i evt feilsøking)
+StandardOutput=journal
+StandardError=journal

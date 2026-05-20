@@ -1,0 +1,53 @@
+---
+- name: Deploy PHP-statuspanel
+  hosts: web_srv
+  become: true
+
+  tasks:
+    # Installerer Apache og nødvendige PHP-pakker for webpanelet
+    - name: Installer Apache og PHP
+      ansible.builtin.apt:
+        name:
+          - apache2
+          - php
+          - libapache2-mod-php
+        state: present
+        update_cache: true
+
+    # Sikrer at Apache starter automatisk ved boot og kjører aktivt
+    - name: Sørg for at Apache er aktivert og kjører
+      ansible.builtin.service:
+        name: apache2
+        state: started
+        enabled: true
+
+    # Fjerner standard Apache index-side for å unngå feil ved deploy av webapplikasjon
+    - name: Fjern standard Apache index-side
+      ansible.builtin.file:
+        path: /var/www/html/index.html
+        state: absent
+
+    # Kopierer PHP-applikasjonen fra control-node til webserver
+    - name: Deploy webapplikasjon
+      ansible.builtin.copy:
+        src: ../web/
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: "0644"
+        directory_mode: "0755"
+
+    # Oppretter loggfil hvis den mangler, og gir webserver lesetilgang
+    - name: Sørg for at AD-sync loggfil eksisterer og er lesbar for www-data
+      ansible.builtin.file:
+        path: /var/log/ad-sync.log
+        state: touch
+        owner: root
+        group: www-data
+        mode: "0640"
+
+    # Restarter Apache for å laste inn siste endringer
+    - name: Restart Apache
+      ansible.builtin.service:
+        name: apache2
+        state: restarted

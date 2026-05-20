@@ -1,0 +1,10 @@
+---
+framework:
+  - github_actions
+  - yaml
+
+compact: true
+quiet: true
+
+skip-check:
+  - CKV_GHA_7
