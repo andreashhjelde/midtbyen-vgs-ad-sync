@@ -44,6 +44,6 @@
 
     # Legger inn public key fra ansible-control for passordløs SSH-tilgang
     - name: Legg inn SSH-nøkkel for ansible-bruker
-      ansible.builtin.authorized_key:
+      ansible.posix.authorized_key:
         user: ansible
         key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
